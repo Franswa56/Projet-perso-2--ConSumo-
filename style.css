@@ -1,0 +1,32 @@
+canvas {
+    border: 8px solid black; /* Pour voir les limites du canvas */
+    background-color: #f0f0f0; /* Couleur de fond pour le terrain */
+    display: block; /* Pour éviter les problèmes de bordure */
+    margin: 0 auto; /* Centrer le canvas horizontalement */
+    margin-top: 50px;
+  }
+body {
+    background-color: rgb(211, 18, 18);
+}
+
+main {
+    display: flex;
+    justify-content: space-between;
+}
+
+.border-1 {
+    height: 98%;
+    position: absolute;
+    width: 10%;
+}
+
+.border-2 {
+    height: 98vh;
+    position: absolute;
+    right: 0;
+    width: 10%;
+}
+
+.sumo {
+    border: 10px solid black;
+}
