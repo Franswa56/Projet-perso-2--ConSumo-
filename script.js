@@ -1,5 +1,21 @@
 
 let score = 0
+let isPaused = false;
+let sumoWalkStep = 1;
+let lastChangeTime = 0
+
+let sumoWidth = 50;
+let sumoHeight = 50;
+
+let sumoLife = 3;
+
+let hasPlayedGongSound = false;
+
+let objectInterval = 500;
+
+const gameOver = document.querySelector(".game-over");
+  // Tableau pour stocker les objets
+  let objects = [];
 // Récupération du canvas et du contexte de rendu
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -11,11 +27,18 @@ canvas.height = 600;
 // Sources des images
 const imageSources = {
   sumo: 'assets/sumo.png',
+  sumo2: 'assets/sumo2.png',
   terrain: 'assets/terrain.png',
   sumoBack: 'assets/sumo-back.png',
+  sumoBack2: 'assets/sumo-back2.png',
   sumoLeft: 'assets/sumo-left.png',
+  sumoLeft2: 'assets/sumo-left2.png',
   sumoRight: 'assets/sumo-right.png',
+  sumoRight2: 'assets/sumo-right2.png',
   fish: 'assets/fish.png',
+  rottenApple: 'assets/rotten-apple.png',
+  apple: 'assets/apple.png',
+  littleFish: 'assets/little-fish.png'
 
 };
 
@@ -31,7 +54,7 @@ let sumoY = canvas.height / 2;
 // États des touches
 const keysPressed = {};
 // Vitesse de déplacement
-const speed = 2;
+const speed = 1.5;
 
 // Charge et surveille le chargement de toutes les images
 Object.keys(imageSources).forEach(key => {
@@ -47,7 +70,7 @@ Object.keys(imageSources).forEach(key => {
 
 // Fonctions de dessin
 function drawSumo() {
-  ctx.drawImage(currentSumoImage, sumoX - 25, sumoY - 25, 50, 50);
+  ctx.drawImage(currentSumoImage, sumoX - 25, sumoY - 25, sumoHeight, sumoWidth);
 }
 
 function drawBackground() {
@@ -58,34 +81,79 @@ function drawBackground() {
 
 let currentSumoImage = images.sumo; //image par défaut
 
-function updatePosition() {
+// Animation de marche
+function changeSumoImage(direction) {
+  sumoWalkStep = sumoWalkStep === 1 ? 2 : 1;
+  let imagePrefix;
 
+  switch (direction) {
+    case 'right':
+      imagePrefix = 'sumoRight';
+      break;
+    case 'left':
+      imagePrefix = 'sumoLeft';
+      break;
+    case 'down': 
+      imagePrefix ='sumo'
+      break
+    case 'up':
+      imagePrefix = 'sumoBack'
+      break
+    // Ajoutez d'autres directions si nécessaire
+    default:
+      return; // Ne rien faire si la direction n'est pas reconnue
+  }
+  currentSumoImage = images[imagePrefix + (sumoWalkStep === 1 ? '' : '2')];
+}
+
+function updatePosition() {
+  const currentTime = Date.now();
   if (keysPressed['ArrowLeft'] && sumoX - speed > 20) {
     sumoX -= speed;
-    currentSumoImage = images.sumoLeft
+    if (currentTime - lastChangeTime > 80) {
+      changeSumoImage('left');
+      lastChangeTime = currentTime;
+    }
   }
   if (keysPressed['ArrowRight'] && sumoX + speed < canvas.width - 20) {
     sumoX += speed;
-    currentSumoImage = images.sumoRight
+    if (currentTime - lastChangeTime > 80) {
+      changeSumoImage('right');
+      lastChangeTime = currentTime;
+    }
   }
   if (keysPressed['ArrowUp'] && sumoY - speed > 20) {
     sumoY -= speed;
-    currentSumoImage = images.sumoBack;
-  }
-  if (keysPressed['ArrowDown'] && sumoY + speed < canvas.height  - 20) {
-    sumoY += speed;
-    currentSumoImage = images.sumo
+    if (currentTime - lastChangeTime > 80) {
+      changeSumoImage('up');
+      lastChangeTime = currentTime;
   }
 }
+  if (keysPressed['ArrowDown'] && sumoY + speed < canvas.height  - 20) {
+    sumoY += speed;
+    if (currentTime - lastChangeTime > 80) {
+      changeSumoImage('down');
+      lastChangeTime = currentTime;
+  }
+}
+}
+// gestion de la pause 
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'p' || event.key === 'P') {
+      isPaused = !isPaused;
+      console.log(isPaused)
+    }
+  });
 
 // Boucle de jeu principale
 function gameLoop() {
+    if (!isPaused) {
   requestAnimationFrame(gameLoop);
   ctx.clearRect(0, 0, canvas.width, canvas.height); // Efface le canvas
   drawBackground(); // Dessine l'arrière-plan
   updatePosition(); // Met à jour la position du sumo
   drawSumo(); // Dessine le sumo
-}
+}}
 
 // Écouteurs d'événements pour les touches du clavier
 document.addEventListener('keydown', (event) => {
@@ -97,204 +165,172 @@ document.addEventListener('keyup', (event) => {
 });
 
 
-// Propriétés pour les poissons
-const fishProperties = {
+
+// Propriétés pour les objet
+const objectProperties = {
     speed: 1,
     width: 35,
     height: 35,
-    imageSrc: '/assets/fish.png'
   };
   
-  // Tableau pour stocker les poissons
-  let fishes = [];
+  const keys = ['apple', 'apple', 'rottenApple', 'rottenApple', 'fish','littleFish'];
+
+  function createNewObject() {
+    const randomIndex = Math.floor(Math.random() * keys.length);
+    const imageKey = keys[randomIndex];
   
-  // Générer un poisson à un intervalle régulier
-  setInterval(function() {
-    const side = Math.floor(Math.random() * 4); // Choisir une bordure aléatoire
+    const side = Math.floor(Math.random() * 4);
     let x, y, speedX, speedY;
   
     // Définir la position et la vitesse basées sur la bordure choisie
     switch (side) {
       case 0: // Haut
         x = Math.random() * canvas.width;
-        y = -fishProperties.height;
+        y = -objectProperties.height;
         speedX = 0;
-        speedY = fishProperties.speed;
+        speedY = objectProperties.speed;
         break;
       case 1: // Bas
         x = Math.random() * canvas.width;
         y = canvas.height;
         speedX = 0;
-        speedY = -fishProperties.speed;
+        speedY = -objectProperties.speed;
         break;
       case 2: // Gauche
-        x = -fishProperties.width;
+        x = -objectProperties.width;
         y = Math.random() * canvas.height;
-        speedX = fishProperties.speed;
+        speedX = objectProperties.speed;
         speedY = 0;
         break;
       case 3: // Droite
         x = canvas.width;
         y = Math.random() * canvas.height;
-        speedX = -fishProperties.speed;
+        speedX = -objectProperties.speed;
         speedY = 0;
         break;
     }
   
-    // Ajouter le nouveau poisson au tableau
-    fishes.push({
+    return {
       x: x,
       y: y,
       speedX: speedX,
       speedY: speedY,
-      image: new Image()
-    });
-    fishes[fishes.length - 1].image.src = fishProperties.imageSrc;
-  }, 2000); // Répétez toutes les 2000 ms (2 secondes)
+      image: images[imageKey],
+      type: imageKey
+    };
+  }
   
-  function updateFishes() {
+  // Générer un objet à un intervalle régulier
+  setInterval(function() {
+    const newObject = createNewObject();
+    objects.push(newObject);
+  }, objectInterval);
+  
+  function updateObject() {
     // Mettre à jour la position de chaque poisson
-    for (let i = fishes.length - 1; i >= 0; i--) {
-      fishes[i].x += fishes[i].speedX;
-      fishes[i].y += fishes[i].speedY;
+    for (let i = objects.length - 1; i >= 0; i--) {
+      objects[i].x += objects[i].speedX;
+      objects[i].y += objects[i].speedY;
   
       // Retirer les poissons qui sont sortis du canvas
-      if (fishes[i].x < -fishProperties.width || fishes[i].x > canvas.width + fishProperties.width ||
-          fishes[i].y < -fishProperties.height || fishes[i].y > canvas.height + fishProperties.height) {
-        fishes.splice(i, 1);
+      if (objects[i].x < -objectProperties.width || objects[i].x > canvas.width + objectProperties.width ||
+          objects[i].y < -objectProperties.height || objects[i].y > canvas.height + objectProperties.height) {
+        objects.splice(i, 1);
       }
     }
   }
   
-  function drawFishes() {
+  function drawObject(object) {
     // Dessiner chaque poisson
-    fishes.forEach(fish => {
-      ctx.drawImage(fish.image, fish.x, fish.y, fishProperties.width, fishProperties.height);
+    objects.forEach(object => {
+      ctx.drawImage(object.image, object.x, object.y, objectProperties.width, objectProperties.height);
     });
   }
 
-  // Propriétés pour les pommes
-const appleProperties = {
-    speed: 1,
-    width: 35,
-    height: 35,
-    imageSrc: '/assets/apple.png'
-  };
+  // Affichage du score 
+
+  function displayAndUpdateScore(score) {
+    const scoreScreen = document.querySelector(".score"); // Sélectionne l'élément avec la classe 'score'
   
-  // Tableau pour stocker les pommes
-  let apples = [];
-  
-  // Générer une pomme à un intervalle régulier
-  setInterval(function() {
-    const side = Math.floor(Math.random() * 4); // Choisir une bordure aléatoire
-    let x, y, speedX, speedY;
-  
-    // Définir la position et la vitesse basées sur la bordure choisie
-    switch (side) {
-      case 0: // Haut
-        x = Math.random() * canvas.width;
-        y = -appleProperties.height;
-        speedX = 0;
-        speedY = appleProperties.speed;
-        break;
-      case 1: // Bas
-        x = Math.random() * canvas.width;
-        y = canvas.height;
-        speedX = 0;
-        speedY = -appleProperties.speed;
-        break;
-      case 2: // Gauche
-        x = -appleProperties.width;
-        y = Math.random() * canvas.height;
-        speedX = appleProperties.speed;
-        speedY = 0;
-        break;
-      case 3: // Droite
-        x = canvas.width;
-        y = Math.random() * canvas.height;
-        speedX = -appleProperties.speed;
-        speedY = 0;
-        break;
-    }
-  
-    // Ajouter la nouvelle pomme au tableau
-    apples.push({
-      x: x,
-      y: y,
-      speedX: speedX,
-      speedY: speedY,
-      image: new Image()
-    });
-    apples[apples.length - 1].image.src = appleProperties.imageSrc;
-  }, 2000); // Répétez toutes les 2000 ms (2 secondes)
-  
-  function updateApples() {
-    // Mettre à jour la position de chaque pomme
-    for (let i = apples.length - 1; i >= 0; i--) {
-      apples[i].x += apples[i].speedX;
-      apples[i].y += apples[i].speedY;
-  
-      // Retirer les pommes qui sont sorties du canvas
-      if (apples[i].x < -appleProperties.width || apples[i].x > canvas.width + appleProperties.width ||
-          apples[i].y < -appleProperties.height || apples[i].y > canvas.height + appleProperties.height) {
-        apples.splice(i, 1);
-      }
+    // Assurez-vous que l'élément scoreScreen existe avant de continuer
+    if (scoreScreen) {
+      scoreScreen.textContent = `Score: ${score}`; // Met à jour le texte de l'élément avec le score actuel
+    console.log ("yes")
     }
   }
-  
-  function drawApples() {
-    // Dessiner chaque pomme
-    apples.forEach(apple => {
-      ctx.drawImage(apple.image, apple.x, apple.y, appleProperties.width, appleProperties.height);
-    });
-  }
 
-  const sumoWidth = 30;
-  const sumoHeight = 30;
+  function checkObjectsCollisions() {
+    for (let i = 0; i < objects.length; i++) {
+      let object = objects[i];
+      if (sumoX < object.x + objectProperties.width &&
+          sumoX + sumoWidth > object.x &&
+          sumoY < object.y + objectProperties.height &&
+          sumoY + sumoHeight > object.y) {
+            displayAndUpdateScore(score)
+            if (score > 50 && !hasPlayedGongSound) {
+              objectInterval = 100;
+              objectProperties.speed = 1.5;
+              sumoHeight = 65;
+              sumoWidth = 65;
+              const gongSound = document.getElementById('gongSound');
+              gongSound.play();
+              hasPlayedGongSound = true; // Mettez à jour la variable
+            }
 
-  function checkFishCollisions() {
-    for (let i = 0; i < fishes.length; i++) {
-      let fish = fishes[i];
-      if (sumoX < fish.x + fishProperties.width &&
-          sumoX + sumoWidth > fish.x &&
-          sumoY < fish.y + fishProperties.height &&
-          sumoY + sumoHeight > fish.y) {
-        // Collision détectée avec un poisson
-        console.log("perdu avec un poisson");
-        // Recharger la page
-        window.location.reload();
+        // Effets des objets
+
+        if (object.type === 'apple' ) {
+          score += 8;
+          console.log(score);
+          // Jouer le son 
+          const appleSound = document.getElementById('appleSound');
+          appleSound.play();
+          // Supprimez l'objet
+          objects.splice(i, 1);
+        } 
+        else if (object.type === 'rottenApple') {
+          score -= 6;
+          console.log(score)
+          
+          const throwUpSound = document.getElementById('throwUpSound');
+          throwUpSound.play();
+
+          objects.splice(i, 1);
+        }
+        else if (object.type === 'littleFish') {
+          score += 10
+          appleSound.play();
+          objects.splice(i, 1);
+        }
+        else if (object.type === 'fish') {
+          const aieSound = document.getElementById('aie');
+          aieSound.play();
+          objects.splice(i, 1);
+          sumoLife -= 1;
+        }               
       }
     }
   }
 
-  function checkAppleCollisions() {
-    for (let i = 0; i < apples.length; i++) {
-      let apple = apples[i];
-      if (sumoX < apple.x + appleProperties.width &&
-          sumoX + sumoWidth > apple.x &&
-          sumoY < apple.y + appleProperties.height &&
-          sumoY + sumoHeight > apple.y) {
-         // Collision détectée avec une pomme
-         score ++
-         console.log(score);
-         apples.splice(i, 1);
-         // Gestion de la fin du jeu ou de la perte d'une vie
-      }
-    }
-  }
   
   function gameLoop() {
-    requestAnimationFrame(gameLoop);
+    if (sumoLife === 0) {
+      cancelAnimationFrame(animationFrameId); // Arrête la boucle de jeu
+      // Gérer la fin du jeu ici, comme afficher un message ou enregistrer le score
+      canvas.style.display = 'none'
+      gameOver.style.display = 'block'
+      return; // Arrête l'exécution de la fonction
+    }
+  
+    // Le reste de la logique de jeu...
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawBackground();
     updatePosition();
     drawSumo();
-    drawApples();
-    updateApples();
-    updateFishes();  // Mettre à jour et dessiner les poissons
-    drawFishes();
-    checkFishCollisions();
-    checkAppleCollisions();
-  }
+    updateObject();  // Mettre à jour et dessiner les objets
+    drawObject();
+    checkObjectsCollisions();
   
+    animationFrameId = requestAnimationFrame(gameLoop); // Un seul appel à la fin de la fonction
+  }
   gameLoop(); // Début de la boucle de jeu

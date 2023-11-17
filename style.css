@@ -3,15 +3,32 @@ canvas {
     background-color: #f0f0f0; /* Couleur de fond pour le terrain */
     display: block; /* Pour éviter les problèmes de bordure */
     margin: 0 auto; /* Centrer le canvas horizontalement */
-    margin-top: 50px;
   }
 body {
     background-color: rgb(211, 18, 18);
 }
 
+.score {
+    right: 44%;
+    top: 750px;
+    font-size: 46px;
+    font-weight: 600;
+    font-family: Arial, Helvetica, sans-serif;
+    position: absolute;
+
+}
+
 main {
     display: flex;
     justify-content: space-between;
+}
+
+.game-over {
+    display: none;
+    width: 45%;
+    margin-left: 30%;
+    margin-top: 100px;
+
 }
 
 .border-1 {
@@ -29,4 +46,5 @@ main {
 
 .sumo {
     border: 10px solid black;
+    margin-top: 40px;
 }
