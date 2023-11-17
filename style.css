@@ -23,6 +23,14 @@ main {
     justify-content: space-between;
 }
 
+.arrows {
+    width: 10%;
+    height: 10%;
+    position: absolute;
+    left: 170px;
+    top: 250px;
+}
+
 .game-over {
     display: none;
     width: 45%;
